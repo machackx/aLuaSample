@@ -1,17 +1,20 @@
+--定义一个类 iOS 独有
 waxClass{"PandoraActViewController", PandoraBaseViewController,protocol = {"PandoraLuckyStarOperateDownloadFinish"}}
 
---公告面板
-function plAddBackView(self)
+--定义一个全局的table
+PandoraActViewController = {}
+this = PandoraActViewController
 
-    local result = plSafeCallHandler(pcall(plpAddBackView, self))
-    if result == false then
-        return false
-    else
-        return true
-    end
+--公告面板
+--使用lua的table方法 
+--OC的类的调用是 Class(Instance):Method(params,..),而lua table的方法是Class(Instance).Method(params,..)
+
+function PandoraActViewController.AddBackView(self)
+    safeCall(this.pAddBackView)
 end
 
-function plpAddBackView( self )
+-- 双端各自实现UI操作，
+function PandoraActViewController.pAddBackView( self )
 
 	if self:view():frame().width > self:view():frame().height then 
 		self.main_width = self:view():frame().width;
@@ -23,7 +26,8 @@ function plpAddBackView( self )
 	local back_W = self.main_width/10*8.5;
 	local back_H = back_W/900*570;
 	local back_y;
-	if UIDevice:currentDevice():userInterfaceIdiom() == 0 then
+    --使用Pandora提供的封装的接口 DeviceType = 0 是 Phone 2 是 iPad
+	if Pandora.DeviceType == 0 then
 		if TGTools:getCurrentDevice() == 1 then
 --			back_W = self.main_width/10*9.2;
 --			back_H = back_W/900*580;
@@ -31,7 +35,7 @@ function plpAddBackView( self )
 		else
 			back_y = (self.main_height - back_H)
 		end
-	elseif UIDevice:currentDevice():userInterfaceIdiom() == 1 then
+	elseif Pandora.DeviceType == 1 then
 		back_y = (self.main_height - back_H)/2
 	end
     self.backView = PandLuaBackView:initWithFrame(CGRect((self.main_width - back_W)/2,back_y,back_W,back_H));
@@ -40,44 +44,40 @@ function plpAddBackView( self )
     self.backView:setView(self);
 end
 
-function plViewWillAppear(self,animated)
-    --拉取钻石数量
-    PandoraNotification:notificationSentWithType_content("getdiamond","number");
 
-    --拉取数据
-    --活动面板需要拉取精彩活动，假日尊享，预留页签位1，预留页签位2
-    local noticeChannelId = PandoraModelIns():configFile():isTestChannel() ~= true and tostring(activitypannel) or tostring(activitypannel_test);
-    local jiariChannelId = PandoraModelIns():configFile():isTestChannel() ~= true and tostring(activityJingcaihuodong) or tostring(activityJingcaihuodong_test);
-    local yuliu1 = PandoraModelIns():configFile():isTestChannel() ~= true and tostring(activityYuliu1) or tostring(activityYuliu1_test);
-    local yuliu2 = PandoraModelIns():configFile():isTestChannel() ~= true and tostring(activityYuliu2) or tostring(activityYuliu2_test);
-
-    --获取网络数据
-    PandoraOprate:getActList_isLocal_channelid_infoid(PandoraOprateIns(),"NO", {noticeChannelId}, nil);
-    PandoraOprate:getActList_isLocal_channelid_infoid(PandoraOprateIns(),"NO", {jiariChannelId}, nil);
-    PandoraOprate:getActList_isLocal_channelid_infoid(PandoraOprateIns(),"NO", {yuliu1}, nil);
-    PandoraOprate:getActList_isLocal_channelid_infoid(PandoraOprateIns(),"NO", {yuliu2}, nil);
-
-    --设置刷新界面代理
-    PandoraOprate:getClass():getInstanceOprate():setDownloadDelegate(self)
---    PandoraOprate:getClass():getInstanceOprate():setMGetActlistDataDelegate(self);
-    PandoraOprate:getClass():getInstanceOprate():setMGetImageDelegate(self);
-
-    PandoraManager:closeLuaTimer();
-
-
-    --当打开界面的时候聚焦到第一个tab的第一个公告活动上
-    if self.backView ~= nil and self.backView.tabTable ~= nil and self.backView.tabTable[1] ~= nil then
-        self.backView:tabClick(self.backView.tabTable[1], true);
-    end
-end
-
+-- iOS Life Cycle，和安卓类似，如果是ViewController(Activity, Fragment)，需要各自的lua中管理各自的Life Cycle的回调
 function viewWillAppear(self,animated)
     plSafeCallHandler(pcall(plViewWillAppear, self, animated))
 end
 
-function getImageCallBack_url(self,responseObject,url)
-    if self.backView ~= nil then
---        self.backView:updateImage();
+function plViewWillAppear(self,animated)
+
+    --TODO 以下的数据通信统一通过一个双端通用的函数进行
+    PandoraActViewController.setUpInitLogic()
+    --拉取钻石数量
+    local notifTable = {}
+    table["getdiamond"] = "number"
+    Pandora.SendRequest(101,table，nil) --101标识通知, 回调为空
+   
+    --拉取数据
+    --活动面板需要拉取精彩活动，假日尊享，预留页签位1，预留页签位2
+    local noticeChannelId = PandoraConstant.isTestChannel ~= true and tostring(activitypannel) or tostring(activitypannel_test);
+    local jiariChannelId = PandoraConstant.isTestChannel ~= true and tostring(activityJingcaihuodong) or tostring(activityJingcaihuodong_test);
+    local yuliu1 = PandoraConstant.isTestChannel ~= true and tostring(activityYuliu1) or tostring(activityYuliu1_test);
+    local yuliu2 = PandoraConstant.isTestChannel ~= true and tostring(activityYuliu2) or tostring(activityYuliu2_test);
+
+    --获取网络数据
+    Pandora.SendRequest(1, json1, callback1)
+    Pandora.SendRequest(1, json2, callback2)
+    Pandora.SendRequest(1, json3, callback3)
+    Pandora.SendRequest(1, json4, callback4)
+
+    --Pandora 统一提供回调
+    Pandora.closeLuaTimer()
+
+    --当打开界面的时候聚焦到第一个tab的第一个公告活动上
+    if self.backView ~= nil and self.backView.tabTable ~= nil and self.backView.tabTable[1] ~= nil then
+        self.backView:tabClick(self.backView.tabTable[1], true);
     end
 end
 
@@ -91,9 +91,16 @@ function plpViewDidAppear(self, animated )
     --self.backView:setView(self);
 end
 
-function downloadFinish(self)
-    plSafeCallHandler(pcall(pldownloadFinish,self))
+function PandoraActViewController.OnImageCallBack(self,responseObject,url)
+    if self.backView ~= nil then
+--        self.backView:updateImage();
+    end
 end
+
+function PandoraActViewController.OnDownloadFinish(self)
+    plSafeCallHandler(pcall(PandoraActViewController.pldownloadFinish,self))
+end
+
 function pldownloadFinish(self)
 	plLog("PandoraActViewController download finish")
 	if self.backView ~= nil then
@@ -101,11 +108,11 @@ function pldownloadFinish(self)
     end
 end
 
-function dataChanged(self)
-    plSafeCallHandler(pcall(plpdataChanged, self))
+function PandoraActViewController.OnDataChanged(self)
+    plSafeCallHandler(pcall(PandoraActViewController.plpdataChanged, self))
 end
 
-function plpdataChanged(self)
+function PandoraActViewController.plpdataChanged(self)
     TGTools:plLog("update  delegate --------------")
 --add bu cosperyu 20151111
     if self.backView ~= nil then
@@ -113,24 +120,28 @@ function plpdataChanged(self)
     end
 end
 
-function doClose(self,btn)
-    plSafeCallHandler(pcall(plpdoClose, self, btn))
+--设置点击事件的触发统一通过 Class.DoSth() 来触发
+function PandoraActViewController.DoClose(self,btn)
+    plSafeCallHandler(pcall(this.pDoClose, self, btn))
 end
 
-function plpdoClose(self,btn)
+function this.pDoClose(self,btn)
     --首先让那个tab聚焦到第一个tab上面。以免造成有延迟切换
     if self.backView ~= nil and self.backView.tabTable ~= nil and self.backView.tabTable[1] ~= nil then
         self.backView:tabClick(self.backView.tabTable[1], true);
     end
-
+    --TODO 逻辑和视图分开
     --埋点：活动中心的关闭
-    PandoraOprate:statisticsReport_channelId_type_actId_jumpType_jumpUrl_recommendId_changjingId_goodsId_fee_currencyType_actStyle_flowId(1,0,5,0,0,"","0","0","0",0,"1","0","0");
-    --PandoraManager:closeCurrentSDKViewWithViewController(self);
+    local staticReportTable = {}
+    staticReportTable.jumpUrl = aURL;
+    local staticReportJsonString = PLJsonManager.encode(staticReportTable)
+    Pandora.SendRequest(1, staticReportJsonString, nil)
+
     PandoraManager:hideActivityPanel(self)
 end
 
 function releaseObjects(self)
-    local result = plSafeCallHandler(pcall(plReleaseObjects, self))
+    local result = safeCall(PandoraActViewController.ReleaseObjects)
     if result == false then
         return false
     else
@@ -138,7 +149,8 @@ function releaseObjects(self)
     end
 end
 
-function plReleaseObjects( self )
+function PandoraActViewController.ReleaseObjects()
+    --视图置nil
 --add by cosperyu 20151112
     if self.backView ~= nil then
         self.backView:removeFromSuperview()
@@ -146,6 +158,7 @@ function plReleaseObjects( self )
         self.backView = nil
     end
 --mGetActlistDataDelegate改为setMGetActlistDataDelegate cosperyu 20151112
+    --代理置nil
     PandoraOprate:getClass():getInstanceOprate():setMGetActlistDataDelegate(nil);
     PandoraOprate:getClass():getInstanceOprate():setMGetImageDelegate(nil);
 end
