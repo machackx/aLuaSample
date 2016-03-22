@@ -1,11 +1,3 @@
--- require "ScreenApdaterUtil"
--- require "ResGetUtil"
--- require "ViewUtils";
--- require "ViewUtils"
--- require "ResGetUtil"
--- require "idFile";
--- require "Tools"
-
 local TAG = "PandoraNotice";
 local noticeADTitle;--活动标题
 local noticeTimer;--倒计时
@@ -19,14 +11,26 @@ local viewlayout;
 local layoutNotice;
 local textBg;
 local currentTimeTaskInstantce;
+
+PandoraNotice = {}
+local this = PandoraNotice
+
+function PandoraNotice.Init()
+  Pandora.Register(...)
+
+end
 function NoticeSetChannelId(ChannelId1)
   ChannelId=ChannelId1;
 end
+
 function setNoticeShowData(ActInfo,netTime)
   ActInfos=ActInfo;
   if(currentTimeTaskInstantce ~= nil and noticeTimer~= nil) then
     currentTimeTaskInstantce:registerObserver(noticeTimer);
   end
+
+  --ActInfos -> Pandora.ActInfos
+
   if(ActInfos~=nil)then
     noticeADTitle:setText(ActInfos:getAct_title());
     --0为当为0是不显示倒计时，为1时显示倒计时
@@ -72,6 +76,10 @@ function setNoticeShowData(ActInfo,netTime)
     return;
   end
   --添加点击事件
+end
+
+function Pandora.SetupUI( ... )
+  -- body
 end
 --添加布局
 function noticeInitUI(context,dir)
@@ -215,6 +223,11 @@ end
 --设置默认滚动套最头部
 function setNoticeScrollY()
   scrollView:setScrollY(0);
+end
+
+
+function Pandora.Close()
+  -- body
 end
 
 function destroyPandoraNotice()
